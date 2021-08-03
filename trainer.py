@@ -111,8 +111,8 @@ class Trainer(object):
             target = Variable(target, volatile=True)
             #############batch divided into two############
             myshape=imgs.shape
-            imgs1=imgs[0:int(myshape[0]/2),:,:]
-            imgs2=imgs[int(myshape[0]/2):myshape[0],:,:]
+            imgs1=imgs[0:myshape[0]:2,:,:]
+            imgs2=imgs[1:myshape[0]:2,:,:]
             img1=imgs1.cuda()
             img2=imgs2.cuda()
             ###############################################
@@ -201,8 +201,8 @@ class Trainer(object):
             imgs, target= Variable(imgs), Variable(target)
             
             myshape=imgs.shape
-            imgs1=imgs[0:int(myshape[0]/2),:,:]
-            imgs2=imgs[int(myshape[0]/2):myshape[0],:,:]
+            imgs1=imgs[0:myshape[0]:2,:,:]
+            imgs2=imgs[1:myshape[0]:2,:,:]
             img1=imgs1.cuda()
             img2=imgs2.cuda()
             ###############################################
@@ -323,8 +323,8 @@ class Verifier_pairwise(object):
 
             myshape=imgs.shape
             with torch.no_grad():
-                imgs1=imgs[0:int(myshape[0]/2),:,:]
-                imgs2=imgs[int(myshape[0]/2):myshape[0],:,:]
+                imgs1=imgs[0:myshape[0]:2,:,:]
+                imgs2=imgs[1:myshape[0]:2,:,:]
                 img1=imgs1.cuda()
                 img2=imgs2.cuda()
                 output = self.model(imgs1,imgs2)

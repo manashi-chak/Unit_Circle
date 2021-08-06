@@ -66,6 +66,11 @@ class Trainer(object):
         max_epoch = int(math.ceil(1. * self.max_iter / len(self.train_loader))) # 117
         for epoch in tqdm.trange(self.epoch, max_epoch, desc='Train', ncols=80):
             self.epoch = epoch
+            if self.epoch==100:
+                
+                for name, param in self.model.named_parameters():
+                    param.requires_grad = True	
+
             self.train_epoch()
             if self.iteration >= self.max_iter:
                 break
@@ -111,8 +116,8 @@ class Trainer(object):
             target = Variable(target, volatile=True)
             #############batch divided into two############
             myshape=imgs.shape
-            imgs1=imgs[0:int(myshape[0]/2),:,:]
-            imgs2=imgs[int(myshape[0]/2):myshape[0],:,:]
+            imgs1=imgs[0:myshape[0]:2,:,:]
+            imgs2=imgs[1:myshape[0]:2,:,:]
             img1=imgs1.cuda()
             img2=imgs2.cuda()
             ###############################################
@@ -201,8 +206,8 @@ class Trainer(object):
             imgs, target= Variable(imgs), Variable(target)
             
             myshape=imgs.shape
-            imgs1=imgs[0:int(myshape[0]/2),:,:]
-            imgs2=imgs[int(myshape[0]/2):myshape[0],:,:]
+            imgs1=imgs[0:myshape[0]:2,:,:]
+            imgs2=imgs[1:myshape[0]:2,:,:]
             img1=imgs1.cuda()
             img2=imgs2.cuda()
             ###############################################
@@ -297,6 +302,54 @@ class Verifier_pairwise(object):
         return final 
         
     def verifier(self):
+        batch_time = utils.AverageMeter()
+        
+        self.model.eval()
+        #step= float(0.0001)
+        #init= float(0.00)
+        #thres =[]  #############################vals??
+        #for i in range(0,10001):
+            #thres.append(init+(float(i)*step))
+        
+        #print(thres)
+        t=[]
+        p=[]
+        end = time.time()
+        #print(torch.cuda.memory_summary(abbreviated=True))
+        for batch_idx, (imgs, target, img_files, class_ids) in tqdm.tqdm(
+            enumerate(self.tar_loader), total= len(self.tar_loader),ncols= 80, leave= False):
+            gc.collect()
+            target= self.classparser(target)
+            #print(target)
+            #pdb.set_trace()
+            #print(batch_idx)
+           # print(torch.cuda.memory_summary(abbreviated=True))
+        #    if batch_idx == 20:
+                #pdb.set_trace()
+        #        break
+            for x in target:
+                t.append(x.detach().cpu().numpy().item())
+                    #print(x)
+            if self.cuda:
+                imgs= imgs.cuda()
+                #pdb.set_trace()
+            with torch.no_grad():
+                output,_ = self.model(imgs)
+                #pdb.set_trace()
+            for x in output:
+                p.append(x.detach().cpu().numpy().item())
+            del target, imgs, output, _
+            torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        fpr, tpr, thresholds = metrics.roc_curve(t, p)
+        for a,b,c in zip(fpr, 1- tpr, thresholds):
+            print('Thres: ',str(c),', FAR_ham: ',str(b),', FRR_ham: ',str(a),'\n')
+            log_str = f'Thres: {c},\tFAR_ham: {b},\tFRR_ham: {a}\n'
+            self.print_log(log_str)
+        #pdb.set_trace()
+        return None
 
         batch_time = utils.AverageMeter()
         
@@ -323,8 +376,9 @@ class Verifier_pairwise(object):
 
             myshape=imgs.shape
             with torch.no_grad():
-                imgs1=imgs[0:int(myshape[0]/2),:,:]
-                imgs2=imgs[int(myshape[0]/2):myshape[0],:,:]
+                
+                imgs1=imgs[0:myshape[0]:2,:,:]
+                imgs2=imgs[1:myshape[0]:2,:,:]
                 img1=imgs1.cuda()
                 img2=imgs2.cuda()
                 output = self.model(imgs1,imgs2)
